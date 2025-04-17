@@ -1,7 +1,5 @@
-
 # Список служб
 services:
-
   # Запускаем Python приложение из образа Dockerfile
   # Имя службы
   app:
@@ -21,3 +19,21 @@ services:
       # Это будет команда по умолчанию
     command: >
       sh -c "python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=devdb
+      - DB_USER=devuser
+      - DB_PASSWORD=change
+    depends_on:
+      - db
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - dev-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTRES_DB=devdb
+      - POSTRES_USER=devuser
+      - POSTRES_PASSWORD=change
+
+volumes:
+  dev-db-data:
