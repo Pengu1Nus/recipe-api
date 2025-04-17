@@ -13,7 +13,7 @@ class Command(BaseCommand):
     """Команда для ожидания БД."""
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.WARNING('Ожидание Базы Данных...'))
+        self.stdout.write(self.style.WARNING('\nОжидание Базы Данных...\n'))
         db_up = False
         while db_up is False:
             try:
