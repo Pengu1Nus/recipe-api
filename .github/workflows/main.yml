@@ -2,7 +2,7 @@
 name: Main
 
 # Триггер для запуска jobs
-on: [push]
+#on: [push]
 
 jobs:
   test-lint:
@@ -11,7 +11,7 @@ jobs:
     steps:
         # Логинимся в DockerHub для пула образа
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
