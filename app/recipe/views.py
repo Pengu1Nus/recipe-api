@@ -2,10 +2,13 @@
 Вью для API рецептов.
 """
 
-from core.models import Recipe
-from rest_framework import status, viewsets
+from core.models import Recipe, Tag
+from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.permissions import (
+    IsAuthenticated,
+    IsAuthenticatedOrReadOnly,
+)
 from rest_framework.response import Response
 
 from recipe import serializers
@@ -38,3 +41,21 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return super().destroy(request, *args, **kwargs)
+
+
+class TagViewSet(
+    mixins.DestroyModelMixin,
+    mixins.UpdateModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
+    """Управление тегами."""
+
+    serializer_class = serializers.TagSerializer
+    queryset = Tag.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_queryset(self):
+        """Фильтрация тегов для аутентифицированных юзеров."""
+        return self.queryset.filter(user=self.request.user).order_by('-name')

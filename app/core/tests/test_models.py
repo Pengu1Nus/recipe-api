@@ -8,6 +8,11 @@ from django.test import TestCase
 from core import models
 
 
+def create_user(username='testUser', password='testpass123'):
+    """Вспомогательная функция для создания пользователя."""
+    return get_user_model().objects.create_user(username, password)
+
+
 class ModelTests(TestCase):
     """Класс для теста моделей."""
 
@@ -53,3 +58,9 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(str(recipe), recipe.title)
+
+    def test_create_tag(self):
+        """Тест создания тега."""
+        user = create_user()
+        tag = models.Tag.objects.create(user=user, name='Tag1')
+        self.assertEqual(str(tag), tag.name)
