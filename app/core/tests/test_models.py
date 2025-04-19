@@ -5,6 +5,13 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
+from core import models
+
+
+def create_user(username='testUser', password='testpass123'):
+    """Вспомогательная функция для создания пользователя."""
+    return get_user_model().objects.create_user(username, password)
+
 
 class ModelTests(TestCase):
     """Класс для теста моделей."""
@@ -36,3 +43,24 @@ class ModelTests(TestCase):
         )
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_create_recipe(self):
+        """Тест создания рецепта."""
+        user = get_user_model().objects.create_user(
+            'testUser',
+            'testpass123',
+        )
+        recipe = models.Recipe.objects.create(
+            user=user,
+            title='Название рецепта',
+            cooking_time=5,
+            description='Подробное описание рецепта.',
+        )
+
+        self.assertEqual(str(recipe), recipe.title)
+
+    def test_create_tag(self):
+        """Тест создания тега."""
+        user = create_user()
+        tag = models.Tag.objects.create(user=user, name='Tag1')
+        self.assertEqual(str(tag), tag.name)
