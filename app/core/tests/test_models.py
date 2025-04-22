@@ -2,6 +2,8 @@
 Тест моделей.
 """
 
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
@@ -64,3 +66,20 @@ class ModelTests(TestCase):
         user = create_user()
         tag = models.Tag.objects.create(user=user, name='Tag1')
         self.assertEqual(str(tag), tag.name)
+
+    def test_create_ingredient(self):
+        """Тест создания ингредиента."""
+        user = create_user()
+        ingredient = models.Ingredient.objects.create(
+            user=user,
+            name='Первый ингредиент',
+        )
+        self.assertEqual(str(ingredient), ingredient.name)
+
+    @patch('core.models.uuid.uuid4')
+    def test_recipe_file_name_uuid(self, mock_uuid):
+        """Тест генерации пути для изображений."""
+        uuid = 'test-uuid'
+        mock_uuid.return_value = uuid
+        file_path = models.recipe_image_file_path(None, 'example-img.jpg')
+        self.assertEqual(file_path, f'uploads/recipe/{uuid}.jpg')
