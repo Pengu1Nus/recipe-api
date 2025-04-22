@@ -2,7 +2,7 @@
 Вью для API рецептов.
 """
 
-from core.models import Recipe, Tag
+from core.models import Ingredient, Recipe, Tag
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import (
@@ -43,19 +43,33 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
 
-class TagViewSet(
+class BaseRecipeAttributesViewSet(
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
     viewsets.GenericViewSet,
 ):
-    """Управление тегами."""
+    """
+    Базовый вьюсет для тегов и ингредиентов.
+    """
 
-    serializer_class = serializers.TagSerializer
-    queryset = Tag.objects.all()
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        """Фильтрация тегов для аутентифицированных юзеров."""
+        """Фильтр для аутентифицированных пользователей."""
         return self.queryset.filter(user=self.request.user).order_by('-name')
+
+
+class TagViewSet(BaseRecipeAttributesViewSet):
+    """Управление тегами."""
+
+    serializer_class = serializers.TagSerializer
+    queryset = Tag.objects.all()
+
+
+class IngredientViewSet(BaseRecipeAttributesViewSet):
+    """Управление ингредиентами."""
+
+    serializer_class = serializers.IngredientSerializer
+    queryset = Ingredient.objects.all()
