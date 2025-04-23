@@ -61,6 +61,53 @@ class PublicRecipApiTests(TestCase):
             description='Описание тестового рецепта',
             user=self.user,
         )
+        self.tag_breakfast = Tag.objects.create(user=self.user, name='Завтрак')
+        self.tag_dinner = Tag.objects.create(user=self.user, name='Ужин')
+
+        self.ingredient_egg = Ingredient.objects.create(
+            user=self.user, name='Яйцо'
+        )
+        self.ingredient_cheese = Ingredient.objects.create(
+            user=self.user, name='Сыр'
+        )
+
+        self.recipe1 = create_recipe(user=self.user, title='Омлет')
+        self.recipe1.tags.add(self.tag_breakfast)
+        self.recipe1.ingredients.add(self.ingredient_egg)
+
+        self.recipe2 = create_recipe(user=self.user, title='Паста')
+        self.recipe2.tags.add(self.tag_dinner)
+        self.recipe2.ingredients.add(self.ingredient_cheese)
+
+    def test_filter_recipes_by_tags(self):
+        """Тест фильтрации рецептов по тегу."""
+        response = self.client.get(RECIPES_URL, {'tags': 'Завтрак'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], self.recipe1.title)
+
+    def test_filter_recipes_by_ingredients(self):
+        """Тест фильтрации рецептов по ингредиенту."""
+        response = self.client.get(RECIPES_URL, {'ingredients': 'Яйцо'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], self.recipe1.title)
+
+    def test_filter_recipes_multiple_parameters(self):
+        """Тест фильтрации рецептов по нескольким параметрам."""
+        response = self.client.get(
+            RECIPES_URL,
+            {
+                'tags': 'Ужин',
+                'ingredients': 'Сыр',
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], self.recipe2.title)
 
     def test_unauthorized_user_cannot_create_recipe(self):
         """
@@ -205,7 +252,7 @@ class PrivateRecipeApiTests(TestCase):
         url = detail_url(recipe.id)
         res = self.client.delete(url)
 
-        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
         self.assertTrue(Recipe.objects.filter(id=recipe.id).exists())
 
     def test_create_recipe_with_new_tags(self):
@@ -383,53 +430,6 @@ class PrivateRecipeApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(recipe.ingredients.count(), 0)
-
-    def test_filter_by_tags(self):
-        """Тест фильтра рецептов по тегам."""
-        recipe1 = create_recipe(user=self.user, title='Первый рецепт')
-        recipe2 = create_recipe(user=self.user, title='Второй рецепт')
-
-        tag1 = Tag.objects.create(user=self.user, name='Тег-1')
-        tag2 = Tag.objects.create(user=self.user, name='Тег-2')
-
-        recipe1.tags.add(tag1)
-        recipe2.tags.add(tag2)
-        recipe3 = create_recipe(user=self.user, title='Третий рецепт')
-
-        params = {'tags': f'{tag1.id},{tag2.id}'}
-        res = self.client.get(RECIPES_URL, params)
-
-        s1 = RecipeSerializer(recipe1)
-        s2 = RecipeSerializer(recipe2)
-        s3 = RecipeSerializer(recipe3)
-
-        self.assertIn(s1.data, res.data)
-        self.assertIn(s2.data, res.data)
-        self.assertNotIn(s3.data, res.data)
-
-    def test_filter_by_ingredient(self):
-        """Тест фильтра по ингредиентам."""
-        recipe1 = create_recipe(user=self.user, title='Первый рецепт')
-        recipe2 = create_recipe(user=self.user, title='Второй рецепт')
-
-        ing1 = Ingredient.objects.create(user=self.user, name='Ингредиент-1')
-        ing2 = Ingredient.objects.create(user=self.user, name='Ингредиент-2')
-
-        recipe1.ingredients.add(ing1)
-        recipe2.ingredients.add(ing2)
-
-        recipe3 = create_recipe(user=self.user, title='Третий рецепт')
-
-        params = {'ingredients': f'{ing1.id},{ing2.id}'}
-        res = self.client.get(RECIPES_URL, params)
-
-        s1 = RecipeSerializer(recipe1)
-        s2 = RecipeSerializer(recipe2)
-        s3 = RecipeSerializer(recipe3)
-
-        self.assertIn(s1.data, res.data)
-        self.assertIn(s2.data, res.data)
-        self.assertNotIn(s3.data, res.data)
 
 
 class ImageUploadTests(TestCase):

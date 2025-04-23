@@ -1,5 +1,7 @@
 Django==3.2
 djangorestframework==3.13
+django-filter==23.1
 psycopg2==2.8
 drf-spectacular==0.15
 Pillow==8.2
+uwsgi==2.0.29
