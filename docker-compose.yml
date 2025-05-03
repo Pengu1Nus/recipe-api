@@ -2,15 +2,14 @@
 services:
   # Запускаем Python приложение из образа Dockerfile
   # Имя службы
-  app:
+  backend:
     build:
       # Билдим из текущей директории
       context: .
       args:
         - DEV=true
-      # Устанавливаем порты для взаимодействия с контейнером
     ports:
-      - "8000:8000"
+      - 8000:8000
     volumes:
       # Связываем локальную директорию app с контейнеровским
       # При внесении изменений в Python код, чтобы не перебилдить
@@ -30,6 +29,7 @@ services:
       - DEBUG=1
     depends_on:
       - db
+
   db:
     image: postgres:13-alpine
     volumes:

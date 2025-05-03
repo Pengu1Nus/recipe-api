@@ -1,8 +1,8 @@
 
 services:
-  app:
-    build:
-      context: .
+  backend:
+    platform: linux/amd64
+    image: pengu1nus/recipe-api_backend
     restart: always
     volumes:
       - static-data:/vol/web
@@ -26,14 +26,14 @@ services:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASS}
 
-  proxy:
-    build:
-      context: ./proxy
+  gateway:
+    platform: linux/amd64
+    image: pengu1nus/recipe-api_proxy
     restart: always
     depends_on:
-      - app
+      - backend
     ports:
-      - 80:8000
+      - 9000:8000
     volumes:
       - static-data:/vol/static
 
