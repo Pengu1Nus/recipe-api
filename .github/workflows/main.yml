@@ -2,7 +2,10 @@
 name: Main
 
 # Триггер для запуска jobs
-on: [push]
+on:
+  push:
+    branches:
+      - dev
 
 jobs:
   test-lint:
@@ -20,7 +23,7 @@ jobs:
         uses: actions/checkout@v2
         # Запуск юнит-тестов
       - name: Test
-        run: docker compose run --rm app sh -c "python manage.py wait_for_db && python manage.py test"
+        run: docker compose run --rm backend sh -c "python manage.py wait_for_db && python manage.py test"
         # Линтер
       - name: Lint
-        run: docker compose run --rm app sh -c "flake8"
+        run: docker compose run --rm backend sh -c "flake8"
