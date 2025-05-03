@@ -2,7 +2,10 @@
 name: Main
 
 # Триггер для запуска jobs
-on: [push]
+on:
+  push:
+    branches:
+      - dev
 
 jobs:
   test-lint:
