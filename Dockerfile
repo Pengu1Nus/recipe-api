@@ -13,7 +13,7 @@ RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
-
+COPY ./scripts /scripts
 COPY ./pyproject.toml .
 
 RUN uv sync
