@@ -23,16 +23,24 @@ RUN uv sync
 FROM python:3.11-slim-bookworm AS production
 
 
-RUN adduser --disabled-password appuser
-USER appuser
-
+EXPOSE 8000
+RUN adduser \
+        --disabled-password \
+        --no-create-home \
+        django-user && \
+    mkdir -p /vol/web/media && \
+    mkdir -p /vol/web/static && \
+    chown -R django-user:django-user /vol && \
+    chmod -R 755 /vol && \
+    chmod -R +x /scripts
+    
 WORKDIR /app
 COPY /app .
-
+    
 COPY --from=builder /app/.venv .venv
-
+    
 ENV PATH="/app/.venv/bin:$PATH"
-
-EXPOSE 8000
+    
+USER django-user
 
 CMD ["run.sh"]
