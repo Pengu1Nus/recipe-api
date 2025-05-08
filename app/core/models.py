@@ -11,6 +11,7 @@ from django.contrib.auth.models import (
     BaseUserManager,
     PermissionsMixin,
 )
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -95,11 +96,6 @@ class Tag(models.Model):
     """Тег для фильтрации рецептов."""
 
     name = models.CharField(max_length=255, verbose_name='Тег')
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь',
-    )
 
     class Meta:
         verbose_name = 'Тег'
@@ -113,10 +109,15 @@ class Ingredient(models.Model):
     """Ингредиент для рецептов."""
 
     name = models.CharField(max_length=255, verbose_name='Ингредиент')
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.Case,
-        verbose_name='Пользователь',
+    measurement_unit = models.CharField(
+        'Единицы измерения', max_length=255, default='грамм'
+    )
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        validators=[
+            MinValueValidator(0, f'Значение не должно быть меньше {0}')
+        ],
+        default=0,
     )
 
     class Meta:

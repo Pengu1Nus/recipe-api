@@ -48,8 +48,8 @@ class PrivateTagsApiTests(TestCase):
 
     def test_retrieve_tags(self):
         """Тест получения списка тегов."""
-        Tag.objects.create(user=self.user, name='Breakfast')
-        Tag.objects.create(user=self.user, name='Dinner')
+        Tag.objects.create(name='Breakfast')
+        Tag.objects.create(name='Dinner')
 
         res = self.client.get(TAGS_URL)
         tags = Tag.objects.all().order_by('-name')
@@ -58,21 +58,9 @@ class PrivateTagsApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serilizer.data)
 
-    def test_tags_limit_to_user(self):
-        user2 = create_user(username='AnotherUser', password='testpass123')
-        Tag.objects.create(user=user2, name='Lunch')
-        tag = Tag.objects.create(user=self.user, name='Brunch')
-
-        res = self.client.get(TAGS_URL)
-
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['name'], tag.name)
-        self.assertEqual(res.data[0]['id'], tag.id)
-
     def test_update_tag(self):
         """Тест обновления тега."""
-        tag = Tag.objects.create(user=self.user, name='New Tag')
+        tag = Tag.objects.create(name='New Tag')
 
         payload = {'name': 'Another new Tag'}
         url = detail_url(tag.id)
@@ -83,10 +71,10 @@ class PrivateTagsApiTests(TestCase):
 
     def test_delete_tag(self):
         """Тест удаления тега."""
-        tag = Tag.objects.create(user=self.user, name='New Tag')
+        tag = Tag.objects.create(name='Tag')
 
         url = detail_url(tag.id)
         res = self.client.delete(url)
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        tags = Tag.objects.filter(user=self.user)
+        tags = Tag.objects.filter(name='Tag')
         self.assertFalse(tags.exists())

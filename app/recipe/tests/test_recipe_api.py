@@ -61,15 +61,11 @@ class PublicRecipApiTests(TestCase):
             description='Описание тестового рецепта',
             user=self.user,
         )
-        self.tag_breakfast = Tag.objects.create(user=self.user, name='Завтрак')
-        self.tag_dinner = Tag.objects.create(user=self.user, name='Ужин')
+        self.tag_breakfast = Tag.objects.create(name='Завтрак')
+        self.tag_dinner = Tag.objects.create(name='Ужин')
 
-        self.ingredient_egg = Ingredient.objects.create(
-            user=self.user, name='Яйцо'
-        )
-        self.ingredient_cheese = Ingredient.objects.create(
-            user=self.user, name='Сыр'
-        )
+        self.ingredient_egg = Ingredient.objects.create(name='Яйцо')
+        self.ingredient_cheese = Ingredient.objects.create(name='Сыр')
 
         self.recipe1 = create_recipe(user=self.user, title='Омлет')
         self.recipe1.tags.add(self.tag_breakfast)
@@ -174,7 +170,7 @@ class PrivateRecipeApiTests(TestCase):
         res = self.client.post(RECIPES_URL, payload)
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        recipe = Recipe.objects.get(id=res.data['id'])
+        recipe = Recipe.objects.get(title=payload['title'])
 
         for key, value in payload.items():
             self.assertEqual(getattr(recipe, key), value)
@@ -269,16 +265,13 @@ class PrivateRecipeApiTests(TestCase):
         recipe = recipes[0]
         self.assertEqual(recipe.tags.count(), 2)
         for tag in payload['tags']:
-            exists = recipe.tags.filter(
-                name=tag['name'],
-                user=self.user,
-            ).exists()
+            exists = recipe.tags.filter(name=tag['name']).exists()
             self.assertTrue(exists)
 
     def test_create_recipe_with_exising_tags(self):
         """Тест создания рецепта с уже существующим тегом."""
 
-        existing_tag = Tag.objects.create(user=self.user, name='Завтрак')
+        existing_tag = Tag.objects.create(name='Завтрак')
         payload = {
             'title': 'Название рецета',
             'cooking_time': 30,
@@ -292,10 +285,7 @@ class PrivateRecipeApiTests(TestCase):
         self.assertEqual(recipe.tags.count(), 2)
         self.assertIn(existing_tag, recipe.tags.all())
         for tag in payload['tags']:
-            exists = recipe.tags.filter(
-                name=tag['name'],
-                user=self.user,
-            ).exists()
+            exists = recipe.tags.filter(name=tag['name']).exists()
             self.assertTrue(exists)
 
     def test_create_tag_on_update(self):
@@ -307,16 +297,16 @@ class PrivateRecipeApiTests(TestCase):
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        new_tag = Tag.objects.get(user=self.user, name='Обед')
+        new_tag = Tag.objects.get(name='Обед')
         self.assertIn(new_tag, recipe.tags.all())
 
     def test_update_recipe_assign_tag(self):
         """Тест присвоения существующего тега при обновлении рецепта."""
-        tag_breakfast = Tag.objects.create(user=self.user, name='Завтрак')
+        tag_breakfast = Tag.objects.create(name='Завтрак')
         recipe = create_recipe(user=self.user)
         recipe.tags.add(tag_breakfast)
 
-        tag_lunch = Tag.objects.create(user=self.user, name='Обед')
+        tag_lunch = Tag.objects.create(name='Обед')
         payload = {'tags': [{'name': 'Обед'}]}
         url = detail_url(recipe.id)
         res = self.client.patch(url, payload, format='json')
@@ -327,7 +317,7 @@ class PrivateRecipeApiTests(TestCase):
 
     def test_clear_recipe_tags(self):
         """Тест удаления тегов рецепта."""
-        tag = Tag.objects.create(user=self.user, name='Десерт')
+        tag = Tag.objects.create(name='Десерт')
         recipe = create_recipe(user=self.user)
         recipe.tags.add(tag)
 
@@ -354,18 +344,14 @@ class PrivateRecipeApiTests(TestCase):
 
         for ingredient in payload['ingredients']:
             exists = recipe.ingredients.filter(
-                name=ingredient['name'],
-                user=self.user,
+                name=ingredient['name']
             ).exists()
             self.assertTrue(exists)
 
     def test_create_recipe_with_exising_ingredient(self):
         """Тест создания рецепта с уже существующим ингредиентом."""
 
-        existing_ingredient = Ingredient.objects.create(
-            user=self.user,
-            name='Сахар',
-        )
+        existing_ingredient = Ingredient.objects.create(name='Сахар')
         payload = {
             'title': 'Название рецета',
             'cooking_time': 30,
@@ -380,8 +366,7 @@ class PrivateRecipeApiTests(TestCase):
         self.assertIn(existing_ingredient, recipe.ingredients.all())
         for ingredient in payload['ingredients']:
             exists = recipe.ingredients.filter(
-                name=ingredient['name'],
-                user=self.user,
+                name=ingredient['name']
             ).exists()
             self.assertTrue(exists)
 
@@ -394,22 +379,16 @@ class PrivateRecipeApiTests(TestCase):
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        new_ingredient = Ingredient.objects.get(user=self.user, name='Сахар')
+        new_ingredient = Ingredient.objects.get(name='Сахар')
         self.assertIn(new_ingredient, recipe.ingredients.all())
 
     def test_update_recipe_assign_ingredient(self):
         """Тест присвоения существующего ингредиента при обновлении рецепта."""
-        ingredient_salt = Ingredient.objects.create(
-            user=self.user,
-            name='Соль',
-        )
+        ingredient_salt = Ingredient.objects.create(name='Соль')
         recipe = create_recipe(user=self.user)
         recipe.ingredients.add(ingredient_salt)
 
-        ingredient_sugar = Ingredient.objects.create(
-            user=self.user,
-            name='Сахар',
-        )
+        ingredient_sugar = Ingredient.objects.create(name='Сахар')
         payload = {'ingredients': [{'name': 'Сахар'}]}
         url = detail_url(recipe.id)
         res = self.client.patch(url, payload, format='json')
@@ -420,7 +399,7 @@ class PrivateRecipeApiTests(TestCase):
 
     def test_clear_recipe_ingredient(self):
         """Тест удаления ингредиентов рецепта."""
-        ingredient = Ingredient.objects.create(user=self.user, name='Сыр')
+        ingredient = Ingredient.objects.create(name='Сыр')
         recipe = create_recipe(user=self.user)
         recipe.ingredients.add(ingredient)
 

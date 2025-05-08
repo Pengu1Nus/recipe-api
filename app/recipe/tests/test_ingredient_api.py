@@ -52,8 +52,8 @@ class PrivateIngredientApiTests(TestCase):
 
     def test_retrieve_ingredients(self):
         """Тест получения списка ингредиентов."""
-        Ingredient.objects.create(user=self.user, name='Тестовый ингредиент 1')
-        Ingredient.objects.create(user=self.user, name='Тестовый ингредиент 2')
+        Ingredient.objects.create(name='Тестовый ингредиент 1')
+        Ingredient.objects.create(name='Тестовый ингредиент 2')
 
         res = self.client.get(INGREDIENTS_URL)
 
@@ -67,20 +67,20 @@ class PrivateIngredientApiTests(TestCase):
         Тест получения списка ингредиентов доступна только
         аутентифицированному пользователю.
         """
-        user2 = create_user(username='TestUser')
-        Ingredient.objects.create(user=user2, name='Соль')
-        ingredient = Ingredient.objects.create(user=self.user, name='Перец')
+        Ingredient.objects.create(name='Соль')
+        ingredient1 = Ingredient.objects.get(name='Соль')
+        ingredient2 = Ingredient.objects.create(name='Перец')
 
         res = self.client.get(INGREDIENTS_URL)
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(res.data), 1)
-        self.assertEqual(res.data[0]['name'], ingredient.name)
-        self.assertEqual(res.data[0]['id'], ingredient.id)
+        self.assertEqual(len(res.data), 2)
+        self.assertEqual(res.data[0]['name'], ingredient1.name)
+        self.assertEqual(res.data[1]['name'], ingredient2.name)
 
     def test_update_ingredient(self):
         """Тест обновления ингредиента."""
-        ingredient = Ingredient.objects.create(user=self.user, name='Сахар')
+        ingredient = Ingredient.objects.create(name='Сахар')
         payload = {'name': 'Корица'}
         url = detail_url(ingredient.id)
         res = self.client.patch(url, payload)
@@ -91,11 +91,11 @@ class PrivateIngredientApiTests(TestCase):
 
     def test_delete_ingredient(self):
         """Тест удаления ингредиента."""
-        ingredient = Ingredient.objects.create(user=self.user, name='Мука')
+        ingredient = Ingredient.objects.create(name='Мука')
 
         url = detail_url(ingredient.id)
         res = self.client.delete(url)
 
         self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
-        ingredients = Ingredient.objects.filter(user=self.user)
+        ingredients = Ingredient.objects.filter(name='Мука')
         self.assertFalse(ingredients.exists())
