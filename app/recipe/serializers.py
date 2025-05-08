@@ -34,21 +34,21 @@ class RecipeSerializer(serializers.ModelSerializer):
         model = Recipe
         fields = (
             'title',
+            'description',
             'cooking_time',
-            'link',
-            'tags',
             'ingredients',
+            'tags',
             'image',
         )
         read_only_fields = ('id',)
 
     def _get_or_create_tags(self, tags, recipe):
         """Функция для получения или обновления тега."""
-        auth_user = self.context['request'].user
+        # auth_user = self.context['request'].user
 
         for tag in tags:
             tag_obj, created = Tag.objects.get_or_create(
-                user=auth_user,
+                # user=auth_user,
                 **tag,
             )
             recipe.tags.add(tag_obj)
@@ -56,10 +56,10 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def _get_or_create_ingredients(self, ingredients, recipe):
         """Функция для получения или обновления ингредиента."""
-        auth_user = self.context['request'].user
+        # auth_user = self.context['request'].user
         for ingredient in ingredients:
             ingredient_obj, created = Ingredient.objects.get_or_create(
-                user=auth_user,
+                # user=auth_user,
                 **ingredient,
             )
             recipe.ingredients.add(ingredient_obj)
@@ -99,8 +99,8 @@ class RecipeDetailSerializer(RecipeSerializer):
 
     class Meta(RecipeSerializer.Meta):
         fields = RecipeSerializer.Meta.fields + (
-            'description',
-            'image',
+            'link',
+            'ingredients',
         )
 
 

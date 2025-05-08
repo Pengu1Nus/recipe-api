@@ -80,9 +80,9 @@ class BaseRecipeAttributesViewSet(
     def get_queryset(self):
         """Фильтр для аутентифицированных пользователей."""
         return (
-            self.queryset.filter(user=self.request.user)
-            .order_by('-name')
-            .distinct()
+            # self.queryset.filter(user=self.request.user)
+            # self.queryset.filter(name=self.request.name)
+            self.queryset.all().order_by('-name').distinct()
         )
 
 
