@@ -13,7 +13,7 @@ RUN chmod -R 655 /install.sh && /install.sh && rm /install.sh
 ENV PATH="/root/.local/bin:${PATH}"
 
 WORKDIR /app
-COPY ./scripts /scripts
+
 COPY ./pyproject.toml .
 
 RUN uv sync
@@ -26,6 +26,7 @@ FROM python:3.11-slim-bookworm AS production
 EXPOSE 8000
 WORKDIR /app
 COPY /app .
+COPY ./scripts /scripts
 
 RUN adduser \
         --disabled-password \
