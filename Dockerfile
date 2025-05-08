@@ -29,6 +29,7 @@ COPY /app .
 
 RUN adduser \
         --disabled-password \
+        --gecos "" \
         --no-create-home \
         django-user && \
     mkdir -p /vol/web/media && \
