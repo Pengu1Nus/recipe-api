@@ -24,6 +24,9 @@ FROM python:3.11-slim-bookworm AS production
 
 
 EXPOSE 8000
+WORKDIR /app
+COPY /app .
+
 RUN adduser \
         --disabled-password \
         --no-create-home \
@@ -33,9 +36,6 @@ RUN adduser \
     chown -R django-user:django-user /vol && \
     chmod -R 755 /vol && \
     chmod -R +x /scripts
-    
-WORKDIR /app
-COPY /app .
     
 COPY --from=builder /app/.venv .venv
     
