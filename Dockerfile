@@ -25,8 +25,9 @@ FROM python:3.11-slim-bookworm AS production
 
 EXPOSE 8000
 WORKDIR /app
+
+COPY ./scripts ./scripts
 COPY /app .
-COPY ./scripts /scripts
 
 RUN adduser \
         --disabled-password \
@@ -37,7 +38,7 @@ RUN adduser \
     mkdir -p /vol/web/static && \
     chown -R django-user:django-user /vol && \
     chmod -R 755 /vol && \
-    chmod -R +x /scripts
+    chmod -R +x ./scripts
     
 COPY --from=builder /app/.venv .venv
     
@@ -45,4 +46,4 @@ ENV PATH="/app/.venv/bin:$PATH"
     
 USER django-user
 
-CMD ["run.sh"]
+CMD ["scripts/run.sh"]
