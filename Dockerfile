@@ -27,7 +27,7 @@ EXPOSE 8000
 WORKDIR /app
 
 COPY ./scripts ./scripts
-COPY /app .
+COPY /app src
 
 RUN adduser \
         --disabled-password \
@@ -45,5 +45,5 @@ COPY --from=builder /app/.venv .venv
 ENV PATH="/app/.venv/bin:$PATH"
     
 USER django-user
-
-CMD ["scripts/run.sh"]
+WORKDIR /app/src
+CMD ["../scripts/run.sh"]

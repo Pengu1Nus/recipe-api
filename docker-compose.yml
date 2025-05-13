@@ -12,6 +12,7 @@ services:
       - 8000:8000
     volumes:
       - dev-static-data:/vol/web
+      - ./app:/app/src
       # Команда, которая будет запускать сервис
       # Это будет команда по умолчанию
     command: >
