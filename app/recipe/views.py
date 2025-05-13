@@ -7,6 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
@@ -98,3 +99,4 @@ class IngredientViewSet(BaseRecipeAttributesViewSet):
 
     serializer_class = serializers.IngredientSerializer
     queryset = Ingredient.objects.all()
+    pagination_class = PageNumberPagination

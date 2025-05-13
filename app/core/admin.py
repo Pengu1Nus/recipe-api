@@ -48,7 +48,17 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+class RecipeAdmin(admin.ModelAdmin):
+    autocomplete_fields = ('ingredients',)
+
+
+class IngredientAdmin(admin.ModelAdmin):
+    list_per_page = 10
+    ordering = ('name',)
+    search_fields = ('name',)
+
+
 admin.site.register(models.User, UserAdmin)
-admin.site.register(models.Recipe)
+admin.site.register(models.Recipe, RecipeAdmin)
 admin.site.register(models.Tag)
-admin.site.register(models.Ingredient)
+admin.site.register(models.Ingredient, IngredientAdmin)
