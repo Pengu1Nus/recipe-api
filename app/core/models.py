@@ -78,7 +78,7 @@ class Recipe(models.Model):
     link = models.CharField(max_length=255, blank=True, verbose_name='Ссылка')
     tags = models.ManyToManyField('Tag', verbose_name='Тег')
     ingredients = models.ManyToManyField(
-        'Ingredient', verbose_name='Ингредиент'
+        'Ingredient', through='RecipeIngredient', verbose_name='Ингредиент'
     )
     image = models.ImageField(
         null=True, upload_to=recipe_image_file_path, verbose_name='Изображение'
@@ -112,13 +112,6 @@ class Ingredient(models.Model):
     measurement_unit = models.CharField(
         'Единицы измерения', max_length=255, default='грамм'
     )
-    amount = models.PositiveSmallIntegerField(
-        'Количество',
-        validators=[
-            MinValueValidator(0, f'Значение не должно быть меньше {0}')
-        ],
-        default=0,
-    )
 
     class Meta:
         verbose_name = 'Ингредиент'
@@ -126,3 +119,29 @@ class Ingredient(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class RecipeIngredient(models.Model):
+    """Промежуточная модель для связи рецептов и ингредиентов с количеством."""
+
+    recipe = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE, verbose_name='Рецепт'
+    )
+    ingredient = models.ForeignKey(
+        Ingredient, on_delete=models.CASCADE, verbose_name='Ингредиент'
+    )
+    amount = models.PositiveSmallIntegerField(
+        'Количество',
+        validators=[MinValueValidator(1, 'Количество должно быть больше 0')],
+    )
+
+    class Meta:
+        verbose_name = 'Ингредиент в рецепте'
+        verbose_name_plural = 'Ингредиенты в рецептах'
+        unique_together = ('recipe', 'ingredient')
+
+    def __str__(self):
+        return (
+            f'{self.ingredient.name} - {self.amount} '
+            f'{self.ingredient.measurement_unit}'
+        )
