@@ -47,11 +47,19 @@ class TagSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
+class RecipeIngredientWriteSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    measurement_unit = serializers.CharField()
+    amount = serializers.IntegerField(min_value=1)
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
-    tags = TagSerializer(many=True, required=False)
-    ingredients = IngredientGetSerializer(
+    tags = TagSerializer(many=True, required=False, write_only=True)
+    tags_display = TagSerializer(many=True, read_only=True, source='tags')
+    ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
+    ingredients_display = IngredientGetSerializer(
         source='recipeingredient_set', many=True, read_only=True
     )
 
@@ -62,7 +70,9 @@ class RecipeSerializer(serializers.ModelSerializer):
             'description',
             'cooking_time',
             'ingredients',
+            'ingredients_display',
             'tags',
+            'tags_display',
             'image',
         )
         read_only_fields = ('id',)
@@ -79,11 +89,19 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def _get_or_create_ingredients(self, ingredients, recipe):
         """Функция для получения или обновления ингредиента."""
-        for ingredient in ingredients:
-            ingredient_obj, created = Ingredient.objects.get_or_create(
-                **ingredient,
+        for ing in ingredients:
+            ingredient_data = {
+                'name': ing['name'],
+                'measurement_unit': ing['measurement_unit'],
+            }
+            ingredient_obj, _ = Ingredient.objects.get_or_create(
+                **ingredient_data
             )
-            recipe.ingredients.add(ingredient_obj)
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient=ingredient_obj,
+                amount=ing['amount'],
+            )
         return recipe
 
     def create(self, validated_data):
