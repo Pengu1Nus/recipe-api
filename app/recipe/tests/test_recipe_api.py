@@ -460,12 +460,9 @@ class PrivateRecipeApiTests(TestCase):
             amount=1,
         )
 
-        ingredient_sugar = Ingredient.objects.create(
-            name='Сахар', measurement_unit='г'
-        )
         payload = {
             'ingredients': [
-                {'name': 'Сахар', 'measurement_unit': 'грамм', 'amount': 3}
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 3}
             ]
         }
         url = detail_url(recipe.id)
