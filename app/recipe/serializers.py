@@ -2,7 +2,7 @@
 Cериализаторы для рецептов.
 """
 
-from core.models import Ingredient, Recipe, Tag
+from core.models import Ingredient, Recipe, RecipeIngredient, Tag
 from rest_framework import serializers
 
 
@@ -11,8 +11,31 @@ class IngredientSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ingredient
-        fields = ('name', 'measurement_unit', 'amount')
+        fields = ('name', 'measurement_unit')
         read_only_fields = ('id',)
+
+
+class RecipeIngredientSerializer(serializers.ModelSerializer):
+    """Сериализатор связи ингредиента с рецептом"""
+
+    ingredient = IngredientSerializer()
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('ingredient', 'amount')
+
+
+class IngredientGetSerializer(serializers.ModelSerializer):
+    """Сериализатор представления Ингредиента для Рецепта"""
+
+    name = serializers.CharField(source='ingredient.name')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit'
+    )
+
+    class Meta:
+        model = RecipeIngredient
+        fields = ('name', 'measurement_unit', 'amount')
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -24,11 +47,21 @@ class TagSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
+class RecipeIngredientWriteSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    measurement_unit = serializers.CharField()
+    amount = serializers.IntegerField(min_value=1)
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
-    tags = TagSerializer(many=True, required=False)
-    ingredients = IngredientSerializer(many=True, required=False)
+    tags = TagSerializer(many=True, required=False, write_only=True)
+    tags_display = TagSerializer(many=True, read_only=True, source='tags')
+    ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
+    ingredients_display = IngredientGetSerializer(
+        source='recipeingredient_set', many=True, read_only=True
+    )
 
     class Meta:
         model = Recipe
@@ -37,18 +70,18 @@ class RecipeSerializer(serializers.ModelSerializer):
             'description',
             'cooking_time',
             'ingredients',
+            'ingredients_display',
             'tags',
+            'tags_display',
             'image',
         )
         read_only_fields = ('id',)
 
     def _get_or_create_tags(self, tags, recipe):
         """Функция для получения или обновления тега."""
-        # auth_user = self.context['request'].user
 
         for tag in tags:
             tag_obj, created = Tag.objects.get_or_create(
-                # user=auth_user,
                 **tag,
             )
             recipe.tags.add(tag_obj)
@@ -56,13 +89,19 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def _get_or_create_ingredients(self, ingredients, recipe):
         """Функция для получения или обновления ингредиента."""
-        # auth_user = self.context['request'].user
-        for ingredient in ingredients:
-            ingredient_obj, created = Ingredient.objects.get_or_create(
-                # user=auth_user,
-                **ingredient,
+        for ing in ingredients:
+            ingredient_data = {
+                'name': ing['name'],
+                'measurement_unit': ing['measurement_unit'],
+            }
+            ingredient_obj, _ = Ingredient.objects.get_or_create(
+                **ingredient_data
             )
-            recipe.ingredients.add(ingredient_obj)
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient=ingredient_obj,
+                amount=ing['amount'],
+            )
         return recipe
 
     def create(self, validated_data):

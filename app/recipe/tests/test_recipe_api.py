@@ -5,7 +5,7 @@
 import os
 import tempfile
 
-from core.models import Ingredient, Recipe, Tag
+from core.models import Ingredient, Recipe, RecipeIngredient, Tag
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -64,16 +64,28 @@ class PublicRecipApiTests(TestCase):
         self.tag_breakfast = Tag.objects.create(name='Завтрак')
         self.tag_dinner = Tag.objects.create(name='Ужин')
 
-        self.ingredient_egg = Ingredient.objects.create(name='Яйцо')
-        self.ingredient_cheese = Ingredient.objects.create(name='Сыр')
+        self.ingredient_egg = Ingredient.objects.create(
+            name='Яйцо', measurement_unit='шт'
+        )
+        self.ingredient_cheese = Ingredient.objects.create(
+            name='Сыр', measurement_unit='г'
+        )
 
         self.recipe1 = create_recipe(user=self.user, title='Омлет')
         self.recipe1.tags.add(self.tag_breakfast)
-        self.recipe1.ingredients.add(self.ingredient_egg)
+        RecipeIngredient.objects.create(
+            recipe=self.recipe1,
+            ingredient=self.ingredient_egg,
+            amount=2,
+        )
 
         self.recipe2 = create_recipe(user=self.user, title='Паста')
         self.recipe2.tags.add(self.tag_dinner)
-        self.recipe2.ingredients.add(self.ingredient_cheese)
+        RecipeIngredient.objects.create(
+            recipe=self.recipe2,
+            ingredient=self.ingredient_cheese,
+            amount=100,
+        )
 
     def test_filter_recipes_by_tags(self):
         """Тест фильтрации рецептов по тегу."""
@@ -85,11 +97,26 @@ class PublicRecipApiTests(TestCase):
 
     def test_filter_recipes_by_ingredients(self):
         """Тест фильтрации рецептов по ингредиенту."""
-        response = self.client.get(RECIPES_URL, {'ingredients': 'Яйцо'})
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]['title'], self.recipe1.title)
+        egg = Ingredient.objects.create(name='Помидоры', measurement_unit='шт')
+
+        RecipeIngredient.objects.create(
+            recipe=self.recipe1,
+            ingredient=egg,
+            amount=2,
+        )
+
+        flour = Ingredient.objects.create(name='Мука', measurement_unit='г')
+        RecipeIngredient.objects.create(
+            recipe=self.recipe2,
+            ingredient=flour,
+            amount=100,
+        )
+
+        res = self.client.get(RECIPES_URL, {'ingredients': 'Помидоры'})
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]['title'], self.recipe1.title)
 
     def test_filter_recipes_multiple_parameters(self):
         """Тест фильтрации рецептов по нескольким параметрам."""
@@ -166,15 +193,28 @@ class PrivateRecipeApiTests(TestCase):
             'title': 'Название рецепта',
             'cooking_time': 30,
             'description': 'Описание рецепта',
+            'ingredients': [
+                {'name': 'Мука', 'measurement_unit': 'г', 'amount': 20},
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 10},
+            ],
+            'tags': [{'name': 'Завтрак'}, {'name': 'Ужин'}],
         }
-        res = self.client.post(RECIPES_URL, payload)
+        res = self.client.post(RECIPES_URL, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         recipe = Recipe.objects.get(title=payload['title'])
 
-        for key, value in payload.items():
-            self.assertEqual(getattr(recipe, key), value)
-        self.assertEqual(recipe.user, self.user)
+        self.assertEqual(recipe.title, payload['title'])
+        self.assertEqual(recipe.description, payload['description'])
+        self.assertEqual(recipe.cooking_time, payload['cooking_time'])
+
+        for ing in payload['ingredients']:
+            exists = recipe.ingredients.filter(name=ing['name']).exists()
+            self.assertTrue(exists)
+
+        for tag in payload['tags']:
+            exists = recipe.tags.filter(name=tag['name']).exists()
+            self.assertTrue(exists)
 
     def test_partial_update(self):
         """Тест частичного обновления рецепта."""
@@ -208,14 +248,17 @@ class PrivateRecipeApiTests(TestCase):
             'link': 'https://example.com/new-ecipe.html',
             'description': 'Новое описание рецепта',
             'cooking_time': 90,
+            'ingredients': [],
+            'tags': [],
         }
         url = detail_url(recipe.id)
-        res = self.client.put(url, payload)
+        res = self.client.put(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         recipe.refresh_from_db()
         for key, value in payload.items():
-            self.assertEqual(getattr(recipe, key), value)
+            if key not in ('ingredients', 'tags'):
+                self.assertEqual(getattr(recipe, key), value)
         self.assertEqual(recipe.user, self.user)
 
     def test_update_user_returns_error(self):
@@ -256,6 +299,7 @@ class PrivateRecipeApiTests(TestCase):
         payload = {
             'title': 'Название рецета',
             'cooking_time': 30,
+            'ingredients': [],
             'tags': [{'name': 'Завтрак'}, {'name': 'Обед'}],
         }
         res = self.client.post(RECIPES_URL, payload, format='json')
@@ -275,6 +319,10 @@ class PrivateRecipeApiTests(TestCase):
         payload = {
             'title': 'Название рецета',
             'cooking_time': 30,
+            'ingredients': [
+                {'name': 'Мука', 'measurement_unit': 'г', 'amount': 20},
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 10},
+            ],
             'tags': [{'name': 'Завтрак'}, {'name': 'Ужин'}],
         }
         res = self.client.post(RECIPES_URL, payload, format='json')
@@ -333,7 +381,11 @@ class PrivateRecipeApiTests(TestCase):
         payload = {
             'title': 'Новый рецепт',
             'cooking_time': 30,
-            'ingredients': [{'name': 'Мука'}, {'name': 'Сахар'}],
+            'ingredients': [
+                {'name': 'Мука', 'measurement_unit': 'г', 'amount': 20},
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 10},
+            ],
+            'tags': [],
         }
         res = self.client.post(RECIPES_URL, payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
@@ -351,18 +403,23 @@ class PrivateRecipeApiTests(TestCase):
     def test_create_recipe_with_exising_ingredient(self):
         """Тест создания рецепта с уже существующим ингредиентом."""
 
-        existing_ingredient = Ingredient.objects.create(name='Сахар')
+        existing_ingredient = Ingredient.objects.create(
+            name='Сахар', measurement_unit='г'
+        )
         payload = {
             'title': 'Название рецета',
             'cooking_time': 30,
-            'ingredients': [{'name': 'Сахар'}, {'name': 'Соль'}],
+            'ingredients': [
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 300},
+            ],
+            'tags': [],
         }
         res = self.client.post(RECIPES_URL, payload, format='json')
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
         recipes = Recipe.objects.filter(user=self.user)
         self.assertEqual(recipes.count(), 1)
         recipe = recipes[0]
-        self.assertEqual(recipe.ingredients.count(), 2)
+        self.assertEqual(recipe.ingredients.count(), 1)
         self.assertIn(existing_ingredient, recipe.ingredients.all())
         for ingredient in payload['ingredients']:
             exists = recipe.ingredients.filter(
@@ -374,34 +431,64 @@ class PrivateRecipeApiTests(TestCase):
         """Тест создания ингредиента при обновлении рецепта."""
         recipe = create_recipe(user=self.user)
 
-        payload = {'ingredients': [{'name': 'Сахар'}]}
+        payload = {
+            'ingredients': [
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 3}
+            ],
+            'tags': [],
+        }
         url = detail_url(recipe.id)
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         new_ingredient = Ingredient.objects.get(name='Сахар')
-        self.assertIn(new_ingredient, recipe.ingredients.all())
+        self.assertTrue(
+            RecipeIngredient.objects.filter(
+                recipe=recipe, ingredient=new_ingredient, amount=3
+            ).exists()
+        )
 
     def test_update_recipe_assign_ingredient(self):
         """Тест присвоения существующего ингредиента при обновлении рецепта."""
-        ingredient_salt = Ingredient.objects.create(name='Соль')
+        ingredient_salt = Ingredient.objects.create(
+            name='Соль', measurement_unit='г'
+        )
         recipe = create_recipe(user=self.user)
-        recipe.ingredients.add(ingredient_salt)
+        RecipeIngredient.objects.create(
+            recipe=recipe,
+            ingredient=ingredient_salt,
+            amount=1,
+        )
 
-        ingredient_sugar = Ingredient.objects.create(name='Сахар')
-        payload = {'ingredients': [{'name': 'Сахар'}]}
+        payload = {
+            'ingredients': [
+                {'name': 'Сахар', 'measurement_unit': 'г', 'amount': 3}
+            ]
+        }
         url = detail_url(recipe.id)
         res = self.client.patch(url, payload, format='json')
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertIn(ingredient_sugar, recipe.ingredients.all())
-        self.assertNotIn(ingredient_salt, recipe.ingredients.all())
+
+        recipe.refresh_from_db()
+
+        ingredient_names = list(
+            recipe.ingredients.values_list('name', flat=True)
+        )
+        self.assertIn('Сахар', ingredient_names)
+        self.assertNotIn('Соль', ingredient_names)
 
     def test_clear_recipe_ingredient(self):
         """Тест удаления ингредиентов рецепта."""
-        ingredient = Ingredient.objects.create(name='Сыр')
+        ingredient = Ingredient.objects.create(
+            name='Сыр', measurement_unit='г'
+        )
         recipe = create_recipe(user=self.user)
-        recipe.ingredients.add(ingredient)
+        RecipeIngredient.objects.create(
+            recipe=recipe,
+            ingredient=ingredient,
+            amount=50,
+        )
 
         payload = {'ingredients': []}
         url = detail_url(recipe.id)

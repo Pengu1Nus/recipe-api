@@ -48,8 +48,14 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+class RecipeIngredientInline(admin.TabularInline):
+    model = models.RecipeIngredient
+    extra = 1
+    autocomplete_fields = ('ingredient',)
+
+
 class RecipeAdmin(admin.ModelAdmin):
-    autocomplete_fields = ('ingredients',)
+    inlines = (RecipeIngredientInline,)
 
 
 class IngredientAdmin(admin.ModelAdmin):
