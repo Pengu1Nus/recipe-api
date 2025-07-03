@@ -16,7 +16,7 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    """Сериализатор связи ингредиента с рецептом"""
+    """Сериализатор связи ингредиента с рецептом."""
 
     ingredient = IngredientSerializer()
 
@@ -48,6 +48,8 @@ class TagSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientWriteSerializer(serializers.Serializer):
+    """Сериализатор для POST запросов рецептов."""
+
     name = serializers.CharField()
     measurement_unit = serializers.CharField()
     amount = serializers.IntegerField(min_value=1)
@@ -56,8 +58,7 @@ class RecipeIngredientWriteSerializer(serializers.Serializer):
 class RecipeSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов."""
 
-    tags = TagSerializer(many=True, required=False, write_only=True)
-    tags_display = TagSerializer(many=True, read_only=True, source='tags')
+    tags = TagSerializer(many=True)
     ingredients = RecipeIngredientWriteSerializer(many=True, write_only=True)
     ingredients_display = IngredientGetSerializer(
         source='recipeingredient_set', many=True, read_only=True
@@ -66,13 +67,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = (
+            'id',
             'title',
             'description',
             'cooking_time',
             'ingredients',
             'ingredients_display',
             'tags',
-            'tags_display',
             'image',
         )
         read_only_fields = ('id',)
